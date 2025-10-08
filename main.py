@@ -42,7 +42,6 @@ async def _send_email_via_resend(
     bcc_emails: Optional[list[str]] = None,
     reply_to: Optional[list[str] | str] = None,
     scheduled_at: Optional[str] = None,
-    headers: Optional[dict] = None,
     attachments: Optional[list[dict]] = None,
     tags: Optional[list[dict]] = None,
 ) -> dict:
@@ -60,7 +59,6 @@ async def _send_email_via_resend(
         bcc_emails: List of BCC recipient email addresses (optional)
         reply_to: Reply-to email address(es) - string or list of strings (optional)
         scheduled_at: Schedule email for later - natural language or ISO 8601 (optional)
-        headers: Custom headers to add to the email (optional)
         attachments: List of attachments with content/filename/path (optional)
         tags: List of custom tags with name/value pairs (optional)
 
@@ -93,16 +91,13 @@ async def _send_email_via_resend(
     if scheduled_at:
         payload["scheduled_at"] = scheduled_at
 
-    if headers:
-        payload["headers"] = headers
-
     if attachments:
         payload["attachments"] = attachments
 
     if tags:
         payload["tags"] = tags
 
-    headers = {
+    request_headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
     }
@@ -128,7 +123,7 @@ async def _send_email_via_resend(
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         try:
-            response = await client.post(url, headers=headers, json=payload)
+            response = await client.post(url, headers=request_headers, json=payload)
             response.raise_for_status()
             response_data = response.json()
 
@@ -303,10 +298,6 @@ async def send_email(
         default=None,
         description="Schedule email for later delivery - natural language (e.g., 'in 1 min') or ISO 8601 format",
     ),
-    custom_headers: Optional[dict] = Field(
-        default=None,
-        description="Custom headers to add to the email",
-    ),
     attachments: Optional[list[dict]] = Field(
         default=None,
         description="List of attachments (max 40MB total). Each with: content (Base64 string), filename, optional path/content_type/content_id",
@@ -382,7 +373,6 @@ async def send_email(
         bcc_emails=bcc_emails,
         reply_to=reply_to,
         scheduled_at=scheduled_at,
-        headers=custom_headers,
         attachments=attachments,
         tags=tags,
     )
