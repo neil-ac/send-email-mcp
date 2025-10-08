@@ -334,11 +334,25 @@ async def send_email(
 
     # Extract API key and sender email from request headers using get_http_headers()
     headers = get_http_headers()
-    api_key = headers.get("x-resend-api-key")
-    sender_email = headers.get("x-sender-email")
+
+    # Debug: Log all received headers
+    logger.info(f"🔍 Received headers: {dict(headers)}")
+
+    # Try multiple case variations for headers (HTTP headers are case-insensitive)
+    api_key = (
+        headers.get("x-resend-api-key")
+        or headers.get("X-RESEND-API-KEY")
+        or headers.get("X-Resend-Api-Key")
+    )
+    sender_email = (
+        headers.get("x-sender-email")
+        or headers.get("X-SENDER-EMAIL")
+        or headers.get("X-Sender-Email")
+    )
 
     if not api_key:
         logger.error("❌ Missing X-RESEND-API-KEY header")
+        logger.error(f"Available headers: {list(headers.keys())}")
         raise ValueError(
             "Missing X-RESEND-API-KEY header. Please provide your Resend API key."
         )
