@@ -1,103 +1,92 @@
-# mcp-server-template-python
+# send-email-mcp
 
-A very simple Python template for building MCP servers using Streamable HTTP transport.
+A FastMCP-based MCP server for sending emails via the Resend API using Streamable HTTP transport with pass-through authentication.
 
 ## Overview
-This template provides a foundation for creating MCP servers that can communicate with AI assistants and other MCP clients. It includes a simple HTTP server implementation with example tools, resources & prompts to help you get started building your own MCP integrations.
+This MCP server provides email sending functionality through the Resend API. It uses pass-through authentication, meaning API credentials are provided via HTTP headers rather than stored in the server configuration. This makes it secure and flexible for multi-tenant use cases.
 
 ## Prerequisites
 - Install uv (https://docs.astral.sh/uv/getting-started/installation/)
+- Resend API key (get one at https://resend.com)
 
 ## Installation
 
-1. Clone the repository:
+1. Clone the repository and navigate to the directory:
 
 ```bash
-git clone git@github.com:alpic-ai/mcp-server-template-python.git
-cd mcp-server-template-python
+cd send-email-mcp
 ```
 
 2. Install python version & dependencies:
 
 ```bash
 uv python install
-uv sync --locked
+uv sync
 ```
 
 ## Usage
 
-Start the server on port 3000:
+Start the server on port 8000:
 
 ```bash
 uv run main.py
 ```
 
-## Running the Inspector
+The server will be available at `http://127.0.0.1:8000/mcp` using Streamable HTTP transport.
 
-### Requirements
-- Node.js: ^22.7.5
+## Authentication
 
-### Quick Start (UI mode)
-To get up and running right away with the UI, just execute the following:
-```bash
-npx @modelcontextprotocol/inspector
-```
+This server uses **pass-through authentication**. You must provide the following HTTP headers with each request:
 
-The inspector server will start up and the UI will be accessible at http://localhost:6274.
+- `X-RESEND-API-KEY`: Your Resend API key
+- `X-SENDER-EMAIL`: The sender email address (must be verified in your Resend account)
 
-You can test your server locally by selecting:
-- Transport Type: Streamable HTTP
-- URL: http://127.0.0.1:3000/mcp
+## Features
+
+### `send_email` Tool
+
+The server provides a comprehensive email sending tool with the following parameters:
+
+- **to_emails**: List of recipient email addresses (max 50)
+- **subject**: Email subject line
+- **html_content**: HTML content of the email
+- **text_content**: Plain text version of the email
+- **cc_emails**: List of CC recipient email addresses
+- **bcc_emails**: List of BCC recipient email addresses
+- **reply_to**: Reply-to email address(es) - single or multiple
+- **scheduled_at**: Schedule email for later delivery (natural language or ISO 8601)
+- **attachments**: File attachments (max 40MB total after Base64 encoding)
+- **tags**: Custom tags for tracking and categorization
+- **custom_headers**: Custom email headers
+
+### `email-template://` Resource
+
+Get a professional real estate inquiry email template for contacting agencies.
+
+**URI Format:** `email-template://{property_reference}`
+
+Returns a pre-formatted email template as JSON with `subject`, `html`, and `text` fields.
+
+### Example Queries
+
+Through an AI assistant connected to this MCP server, you can ask:
+
+- "Send an inquiry email to agency@example.com about the apartment at 15 Rue de la Paix"
+- "Email contact@realestate.fr to request a viewing for the 2-bedroom in Paris 11th"
+- "Send a property inquiry to landlord@example.com about the studio apartment"
 
 ## Development
 
-### Adding New Tools
+### API Integration
 
-To add a new tool, modify `main.py`:
+The server uses the Resend API for email delivery. To extend functionality, modify the `_send_email_via_resend` function in `main.py`.
 
-```python
-@mcp.tool(
-    title="Your Tool Name",
-    description="Tool Description for the LLM",
-)
-async def new_tool(
-    tool_param1: str = Field(description="The description of the param1 for the LLM"), 
-    tool_param2: float = Field(description="The description of the param2 for the LLM") 
-)-> str:
-    """The new tool underlying method"""
-    result = await some_api_call(tool_param1, tool_param2)
-    return result
-```
+### Tech Stack
 
-### Adding New Resources
+- **FastMCP**: Modern MCP server framework
+- **httpx**: Async HTTP client for API calls
+- **Pydantic**: Data validation and email validation
 
-To add a new resource, modify `main.py`:
+## License
 
-```python
-@mcp.resource(
-    uri="your-scheme://{param1}/{param2}",
-    description="Description of what this resource provides",
-    name="Your Resource Name",
-)
-def your_resource(param1: str, param2: str) -> str:
-    """The resource template implementation"""
-    # Your resource logic here
-    return f"Resource content for {param1} and {param2}"
-```
-
-The URI template uses `{param_name}` syntax to define parameters that will be extracted from the resource URI and passed to your function.
-
-### Adding New Prompts
-
-To add a new prompt , modify `main.py`:
-
-```python
-@mcp.prompt("")
-async def your_prompt(
-    prompt_param: str = Field(description="The description of the param for the user")
-) -> str:
-    """Generate a helpful prompt"""
-
-    return f"You are a friendly assistant, help the user and don't forget to {prompt_param}."
-
-```
+MIT
