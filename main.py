@@ -11,10 +11,6 @@ from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_http_headers
 from pydantic import Field, EmailStr
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -274,6 +270,9 @@ async def send_email(
     subject: str = Field(
         description="Email subject line",
     ),
+    sender_email: str = Field(
+        description="Sender email address, must be verified in your Resend account",
+    ),
     html_content: Optional[str] = Field(
         default=None,
         description="HTML content of the email (required if text_content not provided)",
@@ -325,33 +324,12 @@ async def send_email(
 
     # Extract API key and sender email from request headers using get_http_headers()
     headers = get_http_headers()
-
-    # Debug: Log all received headers
-    logger.info(f"🔍 Received headers: {dict(headers)}")
-
-    # Try multiple case variations for headers (HTTP headers are case-insensitive)
-    api_key = (
-        headers.get("x-resend-api-key")
-        or headers.get("X-RESEND-API-KEY")
-        or headers.get("X-Resend-Api-Key")
-    )
-    sender_email = (
-        headers.get("x-sender-email")
-        or headers.get("X-SENDER-EMAIL")
-        or headers.get("X-Sender-Email")
-    )
+    api_key = headers.get("x-api-key")
 
     if not api_key:
         logger.error("❌ Missing X-RESEND-API-KEY header")
-        logger.error(f"Available headers: {list(headers.keys())}")
         raise ValueError(
             "Missing X-RESEND-API-KEY header. Please provide your Resend API key."
-        )
-
-    if not sender_email:
-        logger.error("❌ Missing X-SENDER-EMAIL header")
-        raise ValueError(
-            "Missing X-SENDER-EMAIL header. Please provide sender email address."
         )
 
     if not html_content and not text_content:

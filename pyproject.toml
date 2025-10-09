@@ -10,6 +10,5 @@ dependencies = [
     "black>=25.1.0",
     "fastmcp>=0.7.0",
     "httpx>=0.27.0",
-    "python-dotenv>=1.1.1",
     "pydantic[email]>=2.10.6",
 ]
