@@ -33,7 +33,6 @@ logger.info("🔓 MCP Server initialized (pass-through authentication)")
 
 async def _send_email_via_resend(
     api_key: str,
-    sender_email: str,
     to_emails: list[str],
     subject: str,
     html_content: Optional[str] = None,
@@ -50,7 +49,6 @@ async def _send_email_via_resend(
 
     Args:
         api_key: Resend API key
-        sender_email: Sender email address
         to_emails: List of recipient email addresses
         subject: Email subject
         html_content: HTML content of the email (optional if text_content provided)
@@ -68,7 +66,7 @@ async def _send_email_via_resend(
     url = f"{RESEND_API_BASE_URL}/emails"
 
     payload = {
-        "from": sender_email,
+        "from": "hello@rent-property.my",
         "to": to_emails,
         "subject": subject,
     }
@@ -107,7 +105,6 @@ async def _send_email_via_resend(
     logger.info("📧 Resend API Request")
     logger.info(f"URL: {url}")
     logger.info("Payload:")
-    logger.info(f"  From: {sender_email}")
     logger.info(f"  To: {', '.join(to_emails)}")
     if cc_emails:
         logger.info(f"  CC: {', '.join(cc_emails)}")
@@ -308,7 +305,7 @@ async def send_email(
     ),
 ) -> dict:
     """
-    Send emails using the Resend API. Requires X-RESEND-API-KEY and X-SENDER-EMAIL headers with valid credentials.
+    Send emails using the Resend API. Requires X-API-KEY header with valid credentials.
 
     Returns a response containing the email ID and status information.
 
@@ -329,6 +326,15 @@ async def send_email(
     headers = get_http_headers()
     logger.info(f"🔍 Received headers: {dict(headers)}")
 
+    api_key = headers.get("x-api-key")
+
+    if not api_key:
+        logger.error("❌ Missing X-API-KEY header")
+        logger.error(f"Available headers: {list(headers.keys())}")
+        raise ValueError(
+            "Missing X-API-KEY header. Please provide your Resend API key."
+        )
+
     # Method 2: Try to get from full HTTP request object (alternative approach)
     try:
         request = get_http_request()
@@ -344,47 +350,16 @@ async def send_email(
         logger.warning(f"⚠️ Could not get full request: {e}")
         request = None
 
-    # Try multiple case variations for headers (HTTP headers are case-insensitive)
-    # First try from headers dict, then from request object, then env vars
-    api_key = (
-        headers.get("x-api-key")
-        or headers.get("X-API-KEY")
-        or headers.get("X-Api-Key")
-        or (request.headers.get("x-api-key") if request else None)
-        or (request.headers.get("X-API-KEY") if request else None)
-    )
-    sender_email = (
-        headers.get("x-sender-email")
-        or headers.get("X-SENDER-EMAIL")
-        or headers.get("X-Sender-Email")
-        or (request.headers.get("x-sender-email") if request else None)
-        or (request.headers.get("X-SENDER-EMAIL") if request else None)
-    )
-
-    if not api_key:
-        logger.error("❌ Missing X-RESEND-API-KEY header and RESEND_API_KEY env var")
-        logger.error(f"Available headers: {list(headers.keys())}")
-        raise ValueError(
-            "Missing X-RESEND-API-KEY header or RESEND_API_KEY environment variable. Please provide your Resend API key."
-        )
-
-    if not sender_email:
-        logger.error("❌ Missing X-SENDER-EMAIL header and SENDER_EMAIL env var")
-        raise ValueError(
-            "Missing X-SENDER-EMAIL header or SENDER_EMAIL environment variable. Please provide sender email address."
-        )
-
     if not html_content and not text_content:
         logger.error("❌ Neither html_content nor text_content provided")
         raise ValueError(
             "At least one of html_content or text_content must be provided."
         )
 
-    logger.info("🔑 Using API key and sender email from request headers")
+    logger.info("🔑 Using API key from request headers")
 
     return await _send_email_via_resend(
         api_key=api_key,
-        sender_email=sender_email,
         to_emails=to_emails,
         subject=subject,
         html_content=html_content,
