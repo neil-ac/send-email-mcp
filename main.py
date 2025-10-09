@@ -347,11 +347,11 @@ async def send_email(
     # Try multiple case variations for headers (HTTP headers are case-insensitive)
     # First try from headers dict, then from request object, then env vars
     api_key = (
-        headers.get("x-resend-api-key")
-        or headers.get("X-RESEND-API-KEY")
-        or headers.get("X-Resend-Api-Key")
-        or (request.headers.get("x-resend-api-key") if request else None)
-        or (request.headers.get("X-RESEND-API-KEY") if request else None)
+        headers.get("x-api-key")
+        or headers.get("X-API-KEY")
+        or headers.get("X-Api-Key")
+        or (request.headers.get("x-api-key") if request else None)
+        or (request.headers.get("X-API-KEY") if request else None)
     )
     sender_email = (
         headers.get("x-sender-email")
