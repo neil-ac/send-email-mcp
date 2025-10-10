@@ -38,8 +38,7 @@ The server will be available at `http://127.0.0.1:8000/mcp` using Streamable HTT
 
 This server uses **pass-through authentication**. You must provide the following HTTP headers with each request:
 
-- `X-RESEND-API-KEY`: Your Resend API key
-- `X-SENDER-EMAIL`: The sender email address (must be verified in your Resend account)
+- `X-API-KEY`: Your Resend API key
 
 ## Features
 
@@ -57,15 +56,14 @@ The server provides a comprehensive email sending tool with the following parame
 - **scheduled_at**: Schedule email for later delivery (natural language or ISO 8601)
 - **attachments**: File attachments (max 40MB total after Base64 encoding)
 - **tags**: Custom tags for tracking and categorization
-- **custom_headers**: Custom email headers
 
 ### `email-template://` Resource
 
-Get a professional real estate inquiry email template for contacting agencies.
+Get pre-formatted property inquiry email templates.
 
-**URI Format:** `email-template://{property_reference}`
+**URI:** `"email-template://property-inquiry/{property_link}"`
 
-Returns a pre-formatted email template as JSON with `subject`, `html`, and `text` fields.
+Returns JSON with `subject`, `html`, and `text` fields with SENDER_NAME placeholder, ready to use with the send_email tool.
 
 ### Example Queries
 

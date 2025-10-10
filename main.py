@@ -135,49 +135,43 @@ async def _send_email_via_resend(
 
             return response_data
         except httpx.HTTPStatusError as e:
-            # Get the error details from the response
             try:
-                error_details = e.response.json()
-                error_message = error_details.get("message", "Unknown error")
+                error_message = e.response.json().get("message", e.response.text)
             except:
                 error_message = e.response.text
 
             logger.error(
                 f"❌ Resend API Error ({e.response.status_code}): {error_message}"
             )
-
-            if e.response.status_code in [401, 403]:
-                raise ValueError(
-                    f"Authentication failed: {error_message}. Please check your API key and sender domain verification."
-                )
-            raise ValueError(f"Resend API error: {error_message}")
+            raise ValueError(f"Email send failed: {error_message}")
 
 
 @mcp.resource(
-    uri="email-template://{property_reference}",
-    description="Get a real estate inquiry email template for contacting agencies about apartments",
-    name="Real Estate Inquiry Template",
+    uri="email-template://property-inquiry/{property_link}",
+    description="Get email template with subject, html, and text for property inquiries. Replace the placeholders with the actual values.",
+    name="Property Inquiry Email Template",
+    mime_type="application/json",
 )
 def get_email_template(
-    property_reference: str = "the property",
+    property_link: str,
 ) -> str:
-    """
-    Get a professional real estate inquiry email template for apartment viewings.
+    """Returns JSON with subject, html, and text fields for a property inquiry email.
 
     Args:
-        property_reference: Property reference or description (e.g., "Apartment on 15 Rue de la Paix")
+        property_reference: The property reference or description to include in the email
+        price: The asking price for the property (default: "the listing price")
+        sender_name: Name of the person sending the inquiry (default: "A potential buyer")
 
     Returns:
-        JSON string with 'subject', 'html' and 'text' versions of the email
+        JSON string containing subject, html, and text fields for the email
     """
-    import json
+    subject = f"Interested by your property!"
 
-    subject = f"Inquiry regarding {property_reference}"
-
-    html = f"""
-<!DOCTYPE html>
+    html = f"""<!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <title>{subject}</title>
     <style>
         body {{ 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -223,31 +217,36 @@ def get_email_template(
                 Hello,
             </div>
             <div class="message">
-                <p>I am writing to express my interest in this property and would like to schedule a viewing at your earliest convenience.</p>
-                <p>I look forward to hearing from you soon.</p>
+                <p>We came across your listing for your property and we're really interested!</p>
+                <p>Here is the link to the property: {property_link}"</p>
+
+                <p>Would it be possible to schedule a visit?</p>
+
+                <p>Looking forward to hearing back from you!</p>
             </div>
             <div class="signature">
-                <p>Best regards</p>
+                <p>Thanks,<br>
+                [SENDER_NAME]</p>
             </div>
-            <div class="footer">
-                <p>Regarding: {property_reference}</p>
-            </div>
+
         </div>
     </div>
 </body>
-</html>
-    """
+</html>"""
 
     text = f"""Hello,
 
-I am writing to express my interest in this property and would like to schedule a viewing at your earliest convenience.
+We came across your listing for your property and we're really interested!
 
-I look forward to hearing from you soon.
+Here is the link to the property: {property_link}
 
-Best regards
+Would it be possible to schedule a visit?
 
----
-Regarding: {property_reference}"""
+Looking forward to hearing back from you!
+
+Thanks,
+[SENDER_NAME]
+"""
 
     return json.dumps(
         {
@@ -261,7 +260,7 @@ Regarding: {property_reference}"""
 
 @mcp.tool(
     title="Send Email",
-    description="Send emails using the Resend API with comprehensive features including attachments, scheduling, and tags",
+    description="Send emails via Resend API. IMPORTANT: Always include BOTH html_content AND text_content to avoid delivery issues.",
 )
 async def send_email(
     to_emails: list[EmailStr] = Field(
@@ -307,19 +306,8 @@ async def send_email(
     ),
 ) -> dict:
     """
-    Send emails using the Resend API. Requires X-RESEND-API-KEY and X-SENDER-EMAIL headers with valid credentials.
-
-    Returns a response containing the email ID and status information.
-
-    Example usage:
-    - Send HTML email:
-      to_emails=["user@example.com"], subject="Hello", html_content="<p>Hello World!</p>"
-    - Send with CC and BCC:
-      to_emails=["user@example.com"], subject="Meeting", html_content="<p>Meeting details</p>",
-      cc_emails=["manager@example.com"], bcc_emails=["archive@example.com"]
-    - Schedule email:
-      to_emails=["user@example.com"], subject="Reminder", html_content="<p>Don't forget!</p>",
-      scheduled_at="in 1 hour"
+    Send emails via Resend API. Always provide both html_content AND text_content for best results.
+    Returns email ID on success.
     """
 
     # Extract API key and sender email from request headers using get_http_headers()
