@@ -167,73 +167,6 @@ def get_email_template(
     """
     subject = f"Interested by your property!"
 
-    html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>{subject}</title>
-    <style>
-        body {{ 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6; 
-            color: #2c3e50;
-            margin: 0;
-            padding: 0;
-        }}
-        .container {{ 
-            max-width: 600px; 
-            margin: 20px auto; 
-            padding: 0;
-        }}
-        .content {{ 
-            padding: 30px;
-            background-color: #ffffff;
-        }}
-        .greeting {{
-            font-size: 16px;
-            margin-bottom: 20px;
-        }}
-        .message {{
-            margin: 20px 0;
-            font-size: 15px;
-        }}
-        .signature {{
-            margin-top: 30px;
-            font-size: 15px;
-        }}
-        .footer {{
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            color: #6b7280;
-            font-size: 13px;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="content">
-            <div class="greeting">
-                Hello,
-            </div>
-            <div class="message">
-                <p>We came across your listing for your property and we're really interested!</p>
-                <p>Here is the link to the property: {property_link}"</p>
-
-                <p>Would it be possible to schedule a visit?</p>
-
-                <p>Looking forward to hearing back from you!</p>
-            </div>
-            <div class="signature">
-                <p>Thanks,<br>
-                [SENDER_NAME]</p>
-            </div>
-
-        </div>
-    </div>
-</body>
-</html>"""
-
     text = f"""Hello,
 
 We came across your listing for your property and we're really interested!
@@ -251,7 +184,6 @@ Thanks,
     return json.dumps(
         {
             "subject": subject,
-            "html": html.strip(),
             "text": text.strip(),
         },
         indent=2,
