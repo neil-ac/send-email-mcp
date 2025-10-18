@@ -28,7 +28,7 @@ logger = logging.getLogger("resend-mcp")
 RESEND_API_BASE_URL = "https://api.resend.com"
 
 # No authentication on the MCP server - relies on pass-through
-mcp = FastMCP("Resend Email")
+mcp = FastMCP("Resend Email", stateless_http=True, json_response=True)
 
 
 logger.info("🔓 MCP Server initialized (pass-through authentication)")
@@ -300,7 +300,7 @@ def greet() -> list[UIResource]:
 
 
 if __name__ == "__main__":
-    starlette_app = mcp.http_app(path="/mcp", transport="streamable-http")
+    starlette_app = mcp.streamable_http_app()
 
     starlette_app.add_middleware(
         CORSMiddleware,
