@@ -7,8 +7,14 @@ import logging
 from typing import Optional
 
 import httpx
+import uvicorn
 from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_http_headers
+from starlette.middleware.cors import CORSMiddleware
+
+from mcp_ui_server import create_ui_resource
+from mcp_ui_server.core import UIResource
+
 from pydantic import Field, EmailStr
 
 # Configure logging
@@ -22,7 +28,8 @@ logger = logging.getLogger("resend-mcp")
 RESEND_API_BASE_URL = "https://api.resend.com"
 
 # No authentication on the MCP server - relies on pass-through
-mcp = FastMCP("Resend Email", stateless_http=True)
+mcp = FastMCP("Resend Email")
+
 
 logger.info("🔓 MCP Server initialized (pass-through authentication)")
 
@@ -276,5 +283,34 @@ async def send_email(
     )
 
 
+@mcp.tool()
+def greet() -> list[UIResource]:
+    """A simple greeting tool that returns a UI resource."""
+    ui_resource = create_ui_resource(
+        {
+            "uri": "ui://greeting/simple",
+            "content": {
+                "type": "rawHtml",
+                "htmlString": "<h2>This is a dynamic content, via MCP-UI</h2><button onclick=\"alert('Clicked!')\">Click me</button>",
+            },
+            "encoding": "text",
+        }
+    )
+    return [ui_resource]
+
+
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    starlette_app = mcp.http_app()
+
+    starlette_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:3000",
+            "https://property-hunter-five.vercel.app",
+        ],
+        allow_methods=["*"],
+        allow_headers=["X-RESEND-API-KEY", "X-SENDER-ADDRESS"],
+    )
+
+    # Run the server
+    uvicorn.run(starlette_app, host="127.0.0.1", port=8000)
