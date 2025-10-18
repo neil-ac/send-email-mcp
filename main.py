@@ -313,5 +313,5 @@ starlette_app.add_middleware(
     allow_headers=["X-RESEND-API-KEY", "X-SENDER-ADDRESS"],
 )
 
-mangum_handler = Mangum(app=starlette_app)
+handler = Mangum(app=starlette_app)
 # mcp.run(transport="streamable-http")
