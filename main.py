@@ -300,16 +300,5 @@ def greet() -> list[UIResource]:
 
 
 if __name__ == "__main__":
-    starlette_app = mcp.streamable_http_app(path="/mcp")
-
-    # starlette_app.add_middleware(
-    #     CORSMiddleware,
-    #     allow_origins=[
-    #         "*",
-    #     ],
-    #     allow_methods=["*"],
-    #     allow_headers=["X-RESEND-API-KEY", "X-SENDER-ADDRESS"],
-    # )
-
-    # Run the server
-    uvicorn.run(starlette_app, host="127.0.0.1", port=8000)
+    starlette_app = mcp.http_app(path="/mcp", transport="streamable-http")
+    uvicorn.run(starlette_app, host="0.0.0.0", port=8000)
