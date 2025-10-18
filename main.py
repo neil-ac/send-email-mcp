@@ -7,10 +7,12 @@ import logging
 from typing import Optional
 
 import httpx
-import uvicorn
 from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_http_headers
+
+from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
+from mangum import Mangum
 
 from mcp_ui_server import create_ui_resource
 from mcp_ui_server.core import UIResource
@@ -299,19 +301,17 @@ def greet() -> list[UIResource]:
     return [ui_resource]
 
 
-if __name__ == "__main__":
-    starlette_app = mcp.http_app(path="/mcp", transport="streamable-http")
+starlette_app = mcp.http_app(path="/mcp", transport="streamable-http")
 
-    starlette_app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[
-            "http://localhost:3000",
-            "https://property-hunter-five.vercel.app",
-        ],
-        allow_methods=["*"],
-        allow_headers=["X-RESEND-API-KEY", "X-SENDER-ADDRESS"],
-    )
+starlette_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "https://property-hunter-five.vercel.app",
+    ],
+    allow_methods=["*"],
+    allow_headers=["X-RESEND-API-KEY", "X-SENDER-ADDRESS"],
+)
 
-    # Run the server
-    uvicorn.run(starlette_app, host="127.0.0.1", port=8000)
-    # mcp.run(transport="streamable-http")
+mangum_handler = Mangum(app=starlette_app)
+# mcp.run(transport="streamable-http")
