@@ -300,7 +300,7 @@ def greet() -> list[UIResource]:
 
 
 if __name__ == "__main__":
-    starlette_app = mcp.streamable_http_app()
+    starlette_app = mcp.streamable_http_app(path="/mcp")
 
     starlette_app.add_middleware(
         CORSMiddleware,
