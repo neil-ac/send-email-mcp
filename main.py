@@ -28,7 +28,7 @@ logger = logging.getLogger("resend-mcp")
 RESEND_API_BASE_URL = "https://api.resend.com"
 
 # No authentication on the MCP server - relies on pass-through
-mcp = FastMCP("Resend Email", stateless_http=True, json_response=True)
+mcp = FastMCP("Resend Email")
 
 
 logger.info("🔓 MCP Server initialized (pass-through authentication)")
@@ -301,4 +301,17 @@ def greet() -> list[UIResource]:
 
 if __name__ == "__main__":
     starlette_app = mcp.http_app(path="/mcp", transport="streamable-http")
-    uvicorn.run(starlette_app, host="0.0.0.0", port=8000)
+
+    starlette_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:3000",
+            "https://property-hunter-five.vercel.app",
+        ],
+        allow_methods=["*"],
+        allow_headers=["X-RESEND-API-KEY", "X-SENDER-ADDRESS"],
+    )
+
+    # Run the server
+    uvicorn.run(starlette_app, host="127.0.0.1", port=8000)
+    # mcp.run(transport="streamable-http")
