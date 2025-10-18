@@ -300,13 +300,12 @@ def greet() -> list[UIResource]:
 
 
 if __name__ == "__main__":
-    starlette_app = mcp.http_app(path="/mcp")
+    starlette_app = mcp.http_app(path="/mcp", transport="streamable-http")
 
     starlette_app.add_middleware(
         CORSMiddleware,
         allow_origins=[
-            "http://localhost:3000",
-            "https://property-hunter-five.vercel.app",
+            "*",
         ],
         allow_methods=["*"],
         allow_headers=["X-RESEND-API-KEY", "X-SENDER-ADDRESS"],
