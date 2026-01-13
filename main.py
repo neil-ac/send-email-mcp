@@ -4,25 +4,90 @@ Resend Email MCP Server - Email Sending API
 
 import json
 import logging
-from typing import Optional
+import sys
+from typing import Any, Optional
 
 import httpx
 from fastmcp import FastMCP
 from fastmcp.server.dependencies import get_http_headers
+from fastmcp.server.middleware import CallNext, MiddlewareContext
+from fastmcp.server.server import Middleware
 from pydantic import Field, EmailStr
 
-# Configure logging
+# Configure logging - output to stdout with immediate flushing for hosting platforms
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stdout,  # Use stdout instead of stderr
+    force=True,  # Override any existing configuration
 )
+# Ensure logs are flushed immediately (no buffering)
+for handler in logging.root.handlers:
+    handler.flush = lambda: sys.stdout.flush()
+    
 logger = logging.getLogger("resend-mcp")
+logger.setLevel(logging.DEBUG)
 
 # API Configuration
 RESEND_API_BASE_URL = "https://api.resend.com"
 
+
+class RequestLoggingMiddleware(Middleware):
+    """Middleware to log all incoming MCP requests with context."""
+
+    async def on_message(
+        self,
+        context: MiddlewareContext[Any],
+        call_next: CallNext[Any, Any],
+    ) -> Any:
+        # Log incoming MCP request details
+        logger.info("=" * 80)
+        logger.info("📥 Incoming MCP Message")
+        logger.info(f"Type: {context.type}")
+        logger.info(f"Method: {context.method}")
+
+        # Log message content (params)
+        if hasattr(context.message, "params") and context.message.params:
+            params = context.message.params
+            if hasattr(params, "model_dump"):
+                params_dict = params.model_dump()
+            elif hasattr(params, "__dict__"):
+                params_dict = params.__dict__
+            else:
+                params_dict = str(params)
+            logger.info(f"Params: {json.dumps(params_dict, default=str, indent=2)[:500]}")
+
+        # Log HTTP headers from the request context (if available)
+        try:
+            headers = get_http_headers()
+            logger.info("HTTP Headers:")
+            for header_name, header_value in headers.items():
+                if header_name.lower() in ("x-api-key", "authorization"):
+                    # Mask API keys
+                    if len(header_value) > 16:
+                        masked_value = f"{header_value[:8]}...{header_value[-4:]}"
+                    else:
+                        masked_value = "***REDACTED***"
+                    logger.info(f"  {header_name}: {masked_value}")
+                else:
+                    logger.info(f"  {header_name}: {header_value}")
+        except Exception as e:
+            logger.debug(f"Could not get HTTP headers: {e}")
+
+        logger.info("-" * 80)
+
+        result = await call_next(context)
+
+        logger.info(f"📤 MCP Response completed for: {context.method}")
+        return result
+
+
 # No authentication on the MCP server - relies on pass-through
-mcp = FastMCP("Resend Email", stateless_http=True)
+mcp = FastMCP(
+    "Resend Email",
+    stateless_http=True,
+    middleware=[RequestLoggingMiddleware()],
+)
 
 logger.info("🔓 MCP Server initialized (pass-through authentication)")
 
@@ -242,14 +307,18 @@ async def send_email(
     Returns email ID on success.
     """
 
-    # Extract API key and sender email from request headers using get_http_headers()
+    # Extract API key from request headers using get_http_headers()
     headers = get_http_headers()
     api_key = headers.get("x-api-key")
 
+    # Log the headers received by the tool (for debugging)
+    logger.info("🔧 send_email tool invoked")
+    logger.info(f"Headers available to tool: {list(headers.keys())}")
+
     if not api_key:
-        logger.error("❌ Missing X-RESEND-API-KEY header")
+        logger.error("❌ Missing X-API-KEY header")
         raise ValueError(
-            "Missing X-RESEND-API-KEY header. Please provide your Resend API key."
+            "Missing X-API-KEY header. Please provide your Resend API key."
         )
 
     if not html_content and not text_content:
